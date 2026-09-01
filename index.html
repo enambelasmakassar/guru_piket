@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi Guru Piket — SMP Negeri 16 Makassar</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="line1">Pemerintah Kota Makassar &middot; Dinas Pendidikan</div>
+  <div class="line2">UPTD SPF SMP Negeri 16 Makassar</div>
+  <div class="line3">Aplikasi Absensi Guru oleh Guru Piket</div>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="view-login" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <img id="login-logo" class="login-logo hidden" alt="Logo Sekolah">
+    </div>
+    <h1>Masuk</h1>
+    <div class="sub">Gunakan akun yang telah didaftarkan oleh admin sekolah.</div>
+    <form id="form-login">
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="login-password">Kata Sandi</label>
+        <div class="password-field">
+          <input type="password" id="login-password" required autocomplete="current-password">
+          <button type="button" class="password-toggle" id="toggle-password" aria-label="Tampilkan kata sandi">
+            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a17.3 17.3 0 0 1-2.6 3.53"/><path d="M6.61 6.61A17.44 17.44 0 0 0 1 11.5s4 7 11 7a9.35 9.35 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="btn-login">Masuk</button>
+      <div class="error-msg" id="login-error"></div>
+    </form>
+    <div class="hint-msg">Lupa kata sandi? Hubungi Admin / Kepala Sekolah.</div>
+  </div>
+  <div class="login-wrap-footer">
+    <div class="footer-line"></div>
+    <span id="footer-sekolah-name-login">UPTD SPF SMP Negeri 16 Makassar</span>
+    <span class="footer-sep">&middot;</span>
+    <span id="footer-year-login"></span>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="view-app" class="hidden">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="who">
+        Masuk sebagai <strong id="who-name">-</strong><span class="role-badge" id="who-role">-</span>
+      </div>
+      <button class="btn btn-ghost btn-small" id="btn-logout">Keluar</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+
+    <!-- ============ VIEW: GURU PIKET ============ -->
+    <div id="view-piket" class="hidden">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="catat">Catat Absensi</button>
+        <button class="tab-btn" data-tab="rekap">Rekap Absensi</button>
+        <button class="tab-btn" data-tab="laporan">Laporan</button>
+      </div>
+
+      <!-- TAB: CATAT ABSENSI -->
+      <div class="tab-panel" data-panel="catat">
+        <div class="control-row">
+          <div class="field">
+            <label for="piket-tanggal">Tanggal Piket</label>
+            <input type="date" id="piket-tanggal">
+          </div>
+          <div class="field" style="flex:1;">
+            <div class="day-label" id="piket-hari-label">-</div>
+          </div>
+          <button class="btn btn-wa btn-small" id="btn-kirim-wa-piket">💬 Kirim Rekap ke WA</button>
+        </div>
+
+        <div id="piket-content">
+          <div class="loading-note">Memuat jadwal...</div>
+        </div>
+      </div>
+
+      <!-- TAB: REKAP ABSENSI (lihat kehadiran semua guru, sama seperti Kepala Sekolah — hanya baca) -->
+      <div class="tab-panel hidden" data-panel="rekap">
+        <div class="inline-form">
+          <div class="field">
+            <label>Tanggal</label>
+            <input type="date" id="piket-rekap-tanggal">
+          </div>
+          <div class="field">
+            <label>Guru</label>
+            <select id="piket-rekap-guru-filter"><option value="">Semua Guru</option></select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="piket-rekap-status-filter">
+              <option value="">Semua Status</option>
+              <option>Hadir</option><option>Izin</option><option>Sakit</option><option>Alpa</option><option>Tugas Luar</option>
+            </select>
+          </div>
+          <button class="btn btn-wa btn-small" id="btn-kirim-wa-piket-rekap" style="align-self:flex-end;">💬 Kirim Rekap ke WA</button>
+        </div>
+        <div class="summary-strip" id="piket-rekap-summary"></div>
+        <div class="card">
+          <div class="card-title">
+            <span>Rekap Absensi Harian</span>
+            <button class="btn btn-ghost btn-small" id="piket-rekap-btn-cetak">🖨️ Cetak</button>
+          </div>
+          <div id="piket-rekap-table-wrap"><div class="loading-note">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: LAPORAN (rentang tanggal) -->
+      <div class="tab-panel hidden" data-panel="laporan">
+        <div class="inline-form">
+          <div class="field">
+            <label>Dari Tanggal</label>
+            <input type="date" id="piket-lap-dari">
+          </div>
+          <div class="field">
+            <label>Sampai Tanggal</label>
+            <input type="date" id="piket-lap-sampai">
+          </div>
+          <button class="btn btn-primary btn-small" id="piket-lap-btn-tampilkan" style="align-self:flex-end;">Tampilkan</button>
+        </div>
+        <div class="summary-strip" id="piket-lap-summary"></div>
+        <div class="card">
+          <div class="card-title">Tren Kehadiran Harian</div>
+          <canvas id="piket-lap-chart" height="90"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span>Rekap per Guru</span>
+            <button class="btn btn-ghost btn-small" id="piket-lap-btn-cetak">🖨️ Cetak</button>
+          </div>
+          <div id="piket-lap-guru-table"><div class="loading-note">Pilih rentang tanggal lalu klik Tampilkan.</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Guru dengan Ketidakhadiran Terbanyak</div>
+          <div id="piket-lap-top-alpa"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VIEW: KEPALA SEKOLAH ============ -->
+    <div id="view-kepsek" class="hidden">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="rekap">Rekap Absensi</button>
+        <button class="tab-btn" data-tab="laporan">Laporan Periode</button>
+        <button class="tab-btn" data-tab="jadwal">Kelola Jadwal</button>
+        <button class="tab-btn" data-tab="guru">Kelola Guru</button>
+        <button class="tab-btn" data-tab="mapel">Kelola Mapel</button>
+        <button class="tab-btn" data-tab="akun">Kelola Akun</button>
+        <button class="tab-btn" data-tab="pengaturan">Pengaturan Kop Surat</button>
+      </div>
+
+      <!-- TAB: REKAP -->
+      <div class="tab-panel" data-panel="rekap">
+        <div class="inline-form">
+          <div class="field">
+            <label>Tanggal</label>
+            <input type="date" id="kepsek-rekap-tanggal">
+          </div>
+          <div class="field">
+            <label>Guru</label>
+            <select id="kepsek-rekap-guru-filter"><option value="">Semua Guru</option></select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="kepsek-rekap-status-filter">
+              <option value="">Semua Status</option>
+              <option>Hadir</option><option>Izin</option><option>Sakit</option><option>Alpa</option><option>Tugas Luar</option>
+            </select>
+          </div>
+          <button class="btn btn-wa btn-small" id="btn-kirim-wa-kepsek-rekap" style="align-self:flex-end;">💬 Kirim Rekap ke WA</button>
+        </div>
+        <div class="summary-strip" id="kepsek-rekap-summary"></div>
+        <div class="card">
+          <div class="card-title">
+            <span>Rekap Absensi Harian</span>
+            <button class="btn btn-ghost btn-small" id="kepsek-rekap-btn-cetak">🖨️ Cetak</button>
+          </div>
+          <div id="kepsek-rekap-table-wrap"><div class="loading-note">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: LAPORAN PERIODE (rentang tanggal, rekap per guru, tren, top tidak hadir) -->
+      <div class="tab-panel hidden" data-panel="laporan">
+        <div class="inline-form">
+          <div class="field">
+            <label>Dari Tanggal</label>
+            <input type="date" id="kepsek-lap-dari">
+          </div>
+          <div class="field">
+            <label>Sampai Tanggal</label>
+            <input type="date" id="kepsek-lap-sampai">
+          </div>
+          <button class="btn btn-primary btn-small" id="kepsek-lap-btn-tampilkan" style="align-self:flex-end;">Tampilkan</button>
+        </div>
+        <div class="summary-strip" id="kepsek-lap-summary"></div>
+        <div class="card">
+          <div class="card-title">Tren Kehadiran Harian</div>
+          <canvas id="kepsek-lap-chart" height="90"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span>Rekap per Guru</span>
+            <button class="btn btn-ghost btn-small" id="kepsek-lap-btn-cetak">🖨️ Cetak</button>
+          </div>
+          <div id="kepsek-lap-guru-table"><div class="loading-note">Pilih rentang tanggal lalu klik Tampilkan.</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Guru dengan Ketidakhadiran Terbanyak</div>
+          <div id="kepsek-lap-top-alpa"></div>
+        </div>
+      </div>
+
+      <!-- TAB: JADWAL -->
+      <div class="tab-panel hidden" data-panel="jadwal">
+        <div class="inline-form">
+          <div class="field">
+            <label>Hari</label>
+            <select id="jadwal-hari-filter">
+              <option>SENIN</option><option>SELASA</option><option>RABU</option><option>KAMIS</option><option>JUMAT</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tingkat</label>
+            <select id="jadwal-tingkat-filter">
+              <option value="">Semua</option><option>VII</option><option>VIII</option><option>IX</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-small" id="btn-tambah-jadwal">+ Tambah Jam Jadwal</button>
+        </div>
+        <div class="card">
+          <div id="jadwal-table-wrap"><div class="loading-note">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: GURU -->
+      <div class="tab-panel hidden" data-panel="guru">
+        <div class="inline-form">
+          <input type="number" id="guru-kode-baru" placeholder="Kode" style="width:80px;">
+          <input type="text" id="guru-nama-baru" placeholder="Nama lengkap guru" style="flex:1; min-width:200px;">
+          <button class="btn btn-primary btn-small" id="btn-tambah-guru">+ Tambah Guru</button>
+        </div>
+        <div class="card"><div id="guru-table-wrap"><div class="loading-note">Memuat data...</div></div></div>
+      </div>
+
+      <!-- TAB: MAPEL -->
+      <div class="tab-panel hidden" data-panel="mapel">
+        <div class="inline-form">
+          <input type="text" id="mapel-kode-baru" placeholder="Kode (1 huruf)" style="width:110px;" maxlength="1">
+          <input type="text" id="mapel-nama-baru" placeholder="Nama mata pelajaran" style="flex:1; min-width:200px;">
+          <button class="btn btn-primary btn-small" id="btn-tambah-mapel">+ Tambah Mapel</button>
+        </div>
+        <div class="card"><div id="mapel-table-wrap"><div class="loading-note">Memuat data...</div></div></div>
+      </div>
+
+      <!-- TAB: AKUN -->
+      <div class="tab-panel hidden" data-panel="akun">
+        <div class="card">
+          <div class="card-title">
+            <span>Daftar Akun Pengguna</span>
+            <button class="btn btn-primary btn-small" id="btn-tambah-akun">+ Tambah Akun</button>
+          </div>
+          <p style="font-size:0.85rem; color:var(--ink-soft); margin-top:-8px;">
+            Buat akun baru lewat tombol di atas — nama lengkap yang diisi akan langsung terbaca di seluruh aplikasi (rekap, laporan, dsb). Anda juga bisa mengubah nama & peran akun yang sudah ada di tabel bawah ini.
+          </p>
+          <div id="akun-table-wrap"><div class="loading-note">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: PENGATURAN KOP SURAT -->
+      <div class="tab-panel hidden" data-panel="pengaturan">
+        <div class="card">
+          <div class="card-title">Kop Surat untuk Cetak Laporan</div>
+          <p style="font-size:0.85rem; color:var(--ink-soft); margin-top:-8px;">
+            Data di bawah ini akan tampil sebagai kop surat resmi setiap kali laporan/rekap dicetak.
+          </p>
+          <div id="pengaturan-form-wrap"><div class="loading-note">Memuat data...</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-line"></div>
+    <div class="footer-text">
+      <span id="footer-sekolah-name">UPTD SPF SMP Negeri 16 Makassar</span>
+      <span class="footer-sep">&middot;</span>
+      <span id="footer-year"></span>
+      <span class="footer-tagline">Aplikasi Absensi Guru oleh Guru Piket</span>
+    </div>
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script src="notify.js"></script>
+<script src="wa-rekap.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
