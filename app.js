@@ -372,8 +372,8 @@ function renderPiketTingkatTabs() {
     const btn = document.createElement("button");
     btn.textContent = "Kelas " + t;
     if (t === piketState.tingkatActive) btn.classList.add("active");
-    btn.addEventListener("click", () => {
-      if (!confirmLeaveIfDirty()) return;
+    btn.addEventListener("click", async () => {
+      if (!(await confirmLeaveIfDirty())) return;
       piketState.tingkatActive = t;
       piketState.kelasActive = 1;
       renderPiketTingkatTabs();
@@ -396,9 +396,9 @@ function renderPiketTingkatTabs() {
       + (entry.dirty ? " dirty" : "");
     pill.innerHTML = `${piketState.tingkatActive}.${i} <span class="badge-count">${terisi}/${total}</span>`
       + (entry.dirty ? ` <span class="dirty-dot" title="Ada perubahan belum disimpan">●</span>` : "");
-    pill.addEventListener("click", () => {
+    pill.addEventListener("click", async () => {
       if (i === piketState.kelasActive) return;
-      if (!confirmLeaveIfDirty()) return;
+      if (!(await confirmLeaveIfDirty())) return;
       piketState.kelasActive = i;
       renderPiketTingkatTabs();
     });
@@ -442,10 +442,13 @@ function renderPiketTingkatTabs() {
 }
 
 // Cegah pindah kelas/tingkat tanpa sengaja saat masih ada draft yang belum disimpan
-function confirmLeaveIfDirty() {
+async function confirmLeaveIfDirty() {
   const entry = piketState.kelasCache[`${piketState.tingkatActive}|${piketState.kelasActive}`];
   if (!entry || !entry.dirty) return true;
-  return window.confirm("Ada perubahan di kelas ini yang belum disimpan. Pindah tanpa menyimpan?");
+  return await Notify.confirm(
+    "Ada perubahan di kelas ini yang belum disimpan. Pindah tanpa menyimpan?",
+    { title: "Perubahan Belum Disimpan", confirmText: "Ya, Pindah", cancelText: "Batal", danger: true }
+  );
 }
 
 function buildJamRow(entry, item) {
