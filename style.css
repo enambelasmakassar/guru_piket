@@ -721,3 +721,11 @@ table.data-table tr:hover td { background: rgba(29,53,87,0.03); }
   opacity: 0.55;
 }
 .login-wrap-footer .footer-sep { margin: 0 8px; opacity: 0.7; }
+/* ---------------- PENANDA ISTIRAHAT (hanya tampilan) ---------------- */
+.istirahat-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 7px 12px; margin: 2px 0;
+  background: var(--amber-bg); border: 1px dashed var(--amber); border-radius: 8px;
+  color: #8a6a1c; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em;
+}
+.istirahat-row .istirahat-waktu { font-weight: 600; letter-spacing: 0.02em; }
