@@ -7,6 +7,23 @@ const STATUS_LIST = ["Hadir","Izin","Sakit","Alpa","Tugas Luar"];
 const TINGKAT_LIST = ["VII","VIII","IX"];
 const KELAS_COUNT = { VII: 4, VIII: 5, IX: 5 };
 
+// Penanda jam istirahat (hanya tampilan, TIDAK disimpan ke database & tidak diabsen).
+// Format: hari -> { jam_ke_sebelum_istirahat: "waktu istirahat" } (sesuai PDF PBM Ganjil 2026/2027)
+const ISTIRAHAT = {
+  SENIN:  { 2: "09.40 - 09.55", 5: "11.55 - 12.30" },
+  SELASA: { 3: "09.30 - 09.50", 6: "11.50 - 12.30" },
+  RABU:   { 3: "09.30 - 09.50", 6: "11.50 - 12.30" },
+  KAMIS:  { 3: "09.30 - 09.50", 6: "11.50 - 12.30" },
+  JUMAT:  { 4: "09.45 - 10.10" }
+};
+
+function buildIstirahatRow(waktu) {
+  const el = document.createElement("div");
+  el.className = "istirahat-row";
+  el.innerHTML = `<span>☕ ISTIRAHAT</span><span class="istirahat-waktu">${waktu}</span>`;
+  return el;
+}
+
 let currentUser = null;
 let currentProfile = null;
 let laporanCharts = {}; // "kepsek"|"piket" -> instance Chart.js aktif, supaya bisa di-destroy sebelum digambar ulang
@@ -420,6 +437,8 @@ function renderPiketTingkatTabs() {
 
     entry.items.forEach((item) => {
       listWrap.appendChild(buildJamRow(entry, item));
+      const waktuIstirahat = (ISTIRAHAT[piketState.hari] || {})[item.jam_ke];
+      if (waktuIstirahat) listWrap.appendChild(buildIstirahatRow(waktuIstirahat));
     });
 
     const saveBar = document.createElement("div");
